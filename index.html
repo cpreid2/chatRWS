@@ -295,6 +295,13 @@ html, body { background: var(--bg); color: var(--fg); }
 .chat::before,
 .chat::after { background: transparent !important; box-shadow: none !important; }
 
+    .chat, .chat p, .chat div, .bubble, .message {
+  white-space: normal;          /* allow wrapping between words */
+  word-break: keep-all;         /* keep words whole */
+  overflow-wrap: break-word;    /* wrap long URLs or unbroken strings safely */
+  hyphens: auto;                /* optional: natural hyphenation if needed */
+  line-height: 1.5;
+}
 
   </style>
 </head>
