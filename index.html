@@ -79,17 +79,23 @@
     /* Evaporation */
     .evaporating { animation: bubbleFade .9s ease forwards; }
     @keyframes bubbleFade { to { opacity:.2; transform:translateY(-6px); } }
-    .chars { display:inline; }
+    /* Characters still animate */
     .ch { display:inline-block; }
-    .evaporating .ch { animation: rise var(--dur,900ms) ease-out var(--delay,0ms) forwards; }
-    @keyframes rise {
-      to { transform:translate(var(--dx,0px), calc(-1 * var(--lift,36px))) rotate(var(--rot,0deg)) scale(.96); opacity:0; filter:blur(2px); }
+
+    /* NEW: word-safe wrapping model */
+    .bubble{
+      word-break: keep-all;        /* don't break inside words */
+      overflow-wrap: break-word;   /* but do break very long unbroken strings */
+      hyphens: auto;
+      line-height: 1.5;
     }
+    .chars{ display:inline; white-space:normal; }      /* inline container for runs */
+    .word{ display:inline-block; white-space:nowrap; } /* keep each word intact */
 
     .composer {
       display: flex;
-      align-items: center; /* center vertically */
-      justify-content: center; /* optional: center horizontally too */
+      align-items: center;
+      justify-content: center;
       gap: 8px;
       padding: 12px 0;
       position: relative;
@@ -111,16 +117,11 @@
     }
     button:hover { background:var(--accent-hover); box-shadow:0 0 0 3px rgba(16,163,127,0.25); }
     button:active { transform:translateY(1px) scale(0.97); }
-
     button svg, button svg * { transform:none !important; }
-
     button svg {
       width:18px; height:18px;
       stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
     }
-
-    .chars { display:block; white-space:pre-wrap; }
-    .bubble { word-break: break-word; }
 
     .foot {
       font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0 0;
@@ -128,181 +129,112 @@
     }
 
     /* Centered state (default) — fixed, glassy, and elevated */
-.composerWrap {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(920px, calc(100% - 32px));
-  z-index: 3;
-  transition: transform .3s ease, top .3s ease, bottom .3s ease, opacity .25s ease;
-  background: var(--panel);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  padding: 12px;
-}
+    .composerWrap {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(920px, calc(100% - 32px));
+      z-index: 3;
+      transition: transform .3s ease, top .3s ease, bottom .3s ease, opacity .25s ease;
+      background: var(--panel);
+      backdrop-filter: blur(10px) saturate(140%);
+      -webkit-backdrop-filter: blur(10px) saturate(140%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .composer { padding: 0; }
 
-/* Make the internal bar look tidy when floating */
-.composer { padding: 0; }
+    /* Docked state — behaves like ChatGPT’s bottom bar */
+    .docked .composerWrap {
+      position: sticky;
+      left: auto;
+      top: auto;
+      bottom: 0;
+      transform: none;
+      width: 100%;
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .docked .chat { padding-bottom: 90px; }
 
-/* Docked state — behaves like ChatGPT’s bottom bar */
-.docked .composerWrap {
-  position: sticky;
-  left: auto;
-  top: auto;
-  bottom: 0;
-  transform: none;
-  width: 100%;
-  background: var(--panel);
-  border-radius: 16px;
-  padding: 12px 16px;
-}
+    /* Hide chat and footer until first message */
+    .prechat .chat {
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+      border-width: 0;
+    }
+    .prechat .foot { display: none; }
 
-/* Give the chat area breathing room when docked */
-.docked .chat { padding-bottom: 90px; }
+    /* --- Mobile layout & type scaling --- */
+    @media (max-width: 768px) {
+      html, body { font-size: 18px; -webkit-text-size-adjust: 100%; }
+      .wrap { padding: 8px; }
+      .bar { padding: 12px 12px; }
+      .title { font-size: 16px; }
+      .ephemeral { font-size: 12px; }
 
-/* Optional: subtle divider on docked bar */
-.docked .composerWrap { border-top: 1px solid var(--line); }
+      .chat {
+        padding: 12px;
+        border-radius: 16px;
+      }
 
+      /* Force the composer to the bottom on mobile (even before first send) */
+      .composerWrap {
+        position: sticky;
+        left: auto; top: auto; bottom: 0;
+        transform: none;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+      }
 
-/* Hide chat and footer until first message */
-.prechat .chat {
-  opacity: 0;
-  height: 0;
-  overflow: hidden;
-  padding: 0;
-  margin: 0;
-  border-width: 0;
-}
-.prechat .foot {
-  display: none;
-}
+      /* Show chat on first load on mobile */
+      .prechat .chat {
+        opacity: 1; height: auto; overflow: auto;
+        padding: 12px;
+        margin: 0;
+        border-width: 1px;
+      }
+      .prechat .foot { display: block; }
 
-/* Center composer initially */
-.composerWrap {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(920px, calc(100% - 32px));
-  z-index: 3;
-  transition: transform .3s ease, top .3s ease, bottom .3s ease, opacity .25s ease;
-  background: var(--panel);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  padding: 12px;
-}
+      /* Extra bottom space so the docked bar doesn’t cover last messages */
+      .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+      .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 
-/* Docked (after first send) */
-.docked .composerWrap {
-  position: sticky;
-  left: auto;
-  top: auto;
-  bottom: 0;
-  transform: none;
-  width: 100%;
-  background: var(--panel);
-  border-radius: 16px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--line);
-}
-.docked .chat { padding-bottom: 90px; }
+      .composer { gap: 10px; }
+      textarea {
+        min-height: 56px;
+        font-size: 18px; /* >=16px prevents iOS zoom */
+        line-height: 1.5;
+      }
+      button { width: 48px; height: 48px; }
+      button svg { width: 20px; height: 20px; }
+    }
 
-/* --- Mobile layout & type scaling --- */
-@media (max-width: 768px) {
-  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; } /* readable + avoid input zoom */
-  .wrap { padding: 8px; }
-  .bar { padding: 12px 12px; }
-  .title { font-size: 16px; }
-  .ephemeral { font-size: 12px; }
+    /* ---- Theme tokens (light & dark) ---- */
+    :root { color-scheme: light dark; --bg: #ffffff; --fg: #0b0b0c; --border: #e6e6eb; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0b0b0c; --fg: #eaeaea; --border: #222; }
+    }
+    html, body { background: var(--bg); color: var(--fg); }
 
-  .chat {
-    padding: 12px;
-    border-radius: 16px;
-  }
-
-  /* Force the composer to the bottom on mobile (even before first send) */
-  .composerWrap {
-    position: sticky;
-    left: auto; top: auto; bottom: 0;
-    transform: none;
-    width: 100%;
-    border-radius: 16px 16px 0 0;
-    padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-  }
-
-  /* Show chat on first load on mobile */
-  .prechat .chat {
-    opacity: 1; height: auto; overflow: auto;
-    padding: 12px;
-    margin: 0;
-    border-width: 1px;
-  }
-  .prechat .foot { display: block; }
-
-  /* Extra bottom space so the docked bar doesn’t cover last messages */
-  .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-  .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-
-  .composer { gap: 10px; }
-
-  textarea {
-    min-height: 56px;          /* large enough to avoid iOS zoom on focus */
-    font-size: 18px;            /* >=16px prevents zoom */
-    line-height: 1.5;
-  }
-
-  button { width: 48px; height: 48px; } /* comfortable tap target */
-  button svg { width: 20px; height: 20px; }
-}
-
-/* ---- Theme tokens (light & dark) ---- */
-:root {
-  color-scheme: light dark;           /* lets the browser style form controls per mode */
-  --bg: #ffffff;                      /* page background (light)  */
-  --fg: #0b0b0c;                      /* text (light)            */
-  --border: #e6e6eb;                  /* subtle borders (light)  */
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b0c;                    /* page background (dark)  */
-    --fg: #eaeaea;                    /* text (dark)             */
-    --border: #222;                   /* subtle borders (dark)   */
-  }
-}
-
-/* Apply everywhere */
-html, body { background: var(--bg); color: var(--fg); }
-
-/* Make the chat area blend with the page in BOTH modes */
-.chat {
-  background: var(--bg) !important;   /* same as body */
-  border: 1px solid var(--border) !important;  /* keep your rounded card edge, optional */
-  box-shadow: none !important;        /* remove any grey/raised look */
-  background-clip: padding-box;       /* avoid odd blending halos */
-}
-
-/* If your layout has a wrapper or card behind .chat, match it too */
-.wrap, .chat-container { background: var(--bg) !important; }
-
-/* Safety: kill any decorative overlays that might be tinting it grey */
-.chat::before,
-.chat::after { background: transparent !important; box-shadow: none !important; }
-
-    .chat, .chat p, .chat div, .bubble, .message {
-  white-space: normal;          /* allow wrapping between words */
-  word-break: keep-all;         /* keep words whole */
-  overflow-wrap: break-word;    /* wrap long URLs or unbroken strings safely */
-  hyphens: auto;                /* optional: natural hyphenation if needed */
-  line-height: 1.5;
-}
-
+    /* Blend chat area with page in both modes */
+    .chat {
+      background: var(--bg) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: none !important;
+      background-clip: padding-box;
+    }
+    .wrap, .chat-container { background: var(--bg) !important; }
+    .chat::before, .chat::after { background: transparent !important; box-shadow: none !important; }
   </style>
 </head>
 <body class="prechat">
@@ -317,7 +249,6 @@ html, body { background: var(--bg); color: var(--fg); }
   <main class="wrap">
     <div id="chat" class="chat"></div>
 
-    <!-- Add this wrapper -->
     <div class="composerWrap">
       <div class="composer">
         <textarea id="input" placeholder="How are you feeling? Press Enter to release the thought."></textarea>
@@ -330,8 +261,6 @@ html, body { background: var(--bg); color: var(--fg); }
       </div>
     </div>
 
-
-
     <div class="foot">
       This chat mirrors feelings without replying.<br>
       Unlike LLMs, it offers no affirmation loop. Language lives only long enough to let go.
@@ -339,15 +268,14 @@ html, body { background: var(--bg); color: var(--fg); }
   </main>
 
   <script>
-  let isDocked = false;
+    let isDocked = false;
 
-  function dockComposer() {
-    if (isDocked) return;
-    document.body.classList.remove('prechat'); // show chat window
-    document.body.classList.add('docked');     // dock composer
-    isDocked = true;
-  }
-
+    function dockComposer() {
+      if (isDocked) return;
+      document.body.classList.remove('prechat'); // show chat window
+      document.body.classList.add('docked');     // dock composer
+      isDocked = true;
+    }
 
     const chat = document.getElementById('chat');
     const input = document.getElementById('input');
@@ -359,23 +287,42 @@ html, body { background: var(--bg); color: var(--fg); }
     }
     input.addEventListener('input',()=>autosize(input));
 
+    /* NEW: build spans per word (keeps words intact), preserve newlines */
     function splitToCharSpans(text){
-      const spanWrap = document.createElement('span');
-      spanWrap.className = 'chars';
-      for (const ch of text.replace(/\r/g,'')) {
-        if (ch === '\n') { spanWrap.appendChild(document.createElement('br')); continue; }
-        const s = document.createElement('span');
-        s.className = 'ch';
-        if (ch === ' ') {
-          s.innerHTML = '&nbsp;';
-        } else if (ch === '\t') {
-          s.innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;';
-        } else {
-          s.textContent = ch;
+      const wrap = document.createElement('span');
+      wrap.className = 'chars';
+
+      const lines = text.split('\n');
+      lines.forEach((line, i) => {
+        // Split into words + spaces, preserving spaces as their own tokens
+        const tokens = line.split(/(\s+)/);
+        for (const tok of tokens) {
+          if (!tok) continue;
+
+          // Whitespace: append as a normal collapsing text node (no &nbsp;)
+          if (/^\s+$/.test(tok)) {
+            wrap.appendChild(document.createTextNode(tok));
+            continue;
+          }
+
+          // Word token: keep whole via .word, but still allow per-char animation
+          const w = document.createElement('span');
+          w.className = 'word';
+          for (const ch of tok) {
+            const s = document.createElement('span');
+            s.className = 'ch';
+            s.textContent = ch;
+            w.appendChild(s);
+          }
+          wrap.appendChild(w);
         }
-        spanWrap.appendChild(s);
-      }
-      return spanWrap;
+
+        if (i < lines.length - 1) {
+          wrap.appendChild(document.createElement('br'));
+        }
+      });
+
+      return wrap;
     }
 
     function randomizeEvaporation(bubble){
@@ -424,70 +371,43 @@ html, body { background: var(--bg); color: var(--fg); }
       dockComposer(); // move composer & reveal chat
     }
 
-
     send.addEventListener('click',handleSend);
     input.addEventListener('keydown',e=>{
       if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleSend(); }
     });
 
     // On load, force docked layout on small screens
-(function () {
-  const mq = window.matchMedia('(max-width: 768px)');
-  function applyMobileDock() {
-    if (mq.matches) {
-      document.body.classList.add('docked');
-      document.body.classList.remove('prechat'); // reveal chat on mobile immediately
-    }
-  }
-  applyMobileDock();
-  mq.addEventListener?.('change', applyMobileDock);
-})();
-
     (function () {
-  const form = document.querySelector('.composer form') || document.querySelector('#composerForm');
-  const textarea = document.querySelector('.composer textarea') || document.querySelector('#msg');
-  const releaseBtn = document.querySelector('.composer button');
+      const mq = window.matchMedia('(max-width: 768px)');
+      function applyMobileDock() {
+        if (mq.matches) {
+          document.body.classList.add('docked');
+          document.body.classList.remove('prechat'); // reveal chat on mobile immediately
+        }
+      }
+      applyMobileDock();
+      mq.addEventListener?.('change', applyMobileDock);
+    })();
 
-  if (!textarea) return;
+    // Hide keyboard after release (mobile)
+    (function () {
+      const textarea = document.querySelector('.composer textarea');
+      const releaseBtn = document.querySelector('.composer button');
+      if (!textarea) return;
 
-  function hideKeyboard() {
-    // Works on most browsers
-    textarea.blur();
+      function hideKeyboard() {
+        textarea.blur();
+        textarea.setAttribute('readonly','readonly');
+        setTimeout(()=> textarea.removeAttribute('readonly'), 50);
+        setTimeout(()=> window.scrollTo(0,0), 0);
+      }
 
-    // iOS Safari can be stubborn—this forces the keyboard to close
-    textarea.setAttribute('readonly', 'readonly');
-    setTimeout(() => {
-      textarea.removeAttribute('readonly');
-    }, 50);
-
-    // Nudge viewport so toolbar collapses
-    setTimeout(() => window.scrollTo(0, 0), 0);
-  }
-
-  // If you have a submit flow:
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      // keep your existing submit logic…
-      // e.g., e.preventDefault(); releaseMessage(textarea.value);
-
-      hideKeyboard();
-    }, true);
-  }
-
-  // Also blur when the Release button is tapped (in case it’s a click handler, not a submit)
-  if (releaseBtn) {
-    releaseBtn.addEventListener('click', () => {
-      hideKeyboard();
-    }, true);
-  }
-
-  // Optional: tapping anywhere outside the composer hides the keyboard
-  document.addEventListener('touchstart', (e) => {
-    const composer = document.querySelector('.composerWrap') || document.querySelector('#composer');
-    if (composer && !composer.contains(e.target)) hideKeyboard();
-  }, { passive: true });
-})();
-
+      if (releaseBtn) releaseBtn.addEventListener('click', hideKeyboard, true);
+      document.addEventListener('touchstart', (e) => {
+        const composer = document.querySelector('.composerWrap');
+        if (composer && !composer.contains(e.target)) hideKeyboard();
+      }, { passive: true });
+    })();
   </script>
 </body>
 </html>
