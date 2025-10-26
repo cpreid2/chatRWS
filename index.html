@@ -215,52 +215,65 @@
 .docked .chat { padding-bottom: 90px; }
 
 /* --- Mobile layout & type scaling --- */
+/* --- Composer-only mobile view (dark & light) --- */
 @media (max-width: 768px) {
-  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; } /* readable + avoid input zoom */
-  .wrap { padding: 8px; }
-  .bar { padding: 12px 12px; }
-  .title { font-size: 16px; }
-  .ephemeral { font-size: 12px; }
-
-  .chat {
-    padding: 12px;
-    border-radius: 16px;
+  /* Hide anything above/below the composer */
+  .bar,
+  .chat,
+  .foot {
+    display: none !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
   }
 
-  /* Force the composer to the bottom on mobile (even before first send) */
-  .composerWrap {
-    position: sticky;
-    left: auto; top: auto; bottom: 0;
-    transform: none;
-    width: 100%;
-    border-radius: 16px 16px 0 0;
-    padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-  }
+  /* Remove container padding that could show as a “grey strip” */
+  .wrap { padding: 0 !important; }
 
-  /* Show chat on first load on mobile */
-  .prechat .chat {
-    opacity: 1; height: auto; overflow: auto;
-    padding: 12px;
+  /* Make the page itself pure canvas with no visible chrome */
+  html, body {
     margin: 0;
-    border-width: 1px;
+    padding: 0;
+    background: #000;                 /* dark canvas; adjust if you prefer */
+    color: #fff;
   }
-  .prechat .foot { display: block; }
+  @media (prefers-color-scheme: light) {
+    html, body { background: #fff; color: #111; }
+  }
 
-  /* Extra bottom space so the docked bar doesn’t cover last messages */
-  .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-  .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+  /* Dock the composer as the only visible UI */
+  .composerWrap {
+    position: fixed !important;
+    left: 0; right: 0; bottom: 0;
+    transform: none !important;
+    width: 100% !important;
+    border: 0;
+    border-radius: 0;
+    z-index: 9999;
+    padding: 12px env(safe-area-inset-right)
+             calc(12px + env(safe-area-inset-bottom))
+             env(safe-area-inset-left) !important;
+    background: var(--surface, rgba(0,0,0,0.92)); /* subtle panel, no grey band */
+    box-shadow: none;
+    backdrop-filter: none;
+  }
 
-  .composer { gap: 10px; }
-
+  /* Comfortable, non-zooming input */
   textarea {
-    min-height: 56px;          /* large enough to avoid iOS zoom on focus */
-    font-size: 18px;            /* >=16px prevents zoom */
+    min-height: 56px;
+    font-size: 18px;
     line-height: 1.5;
   }
 
-  button { width: 48px; height: 48px; } /* comfortable tap target */
+  /* Tap targets */
+  .composer { gap: 10px; }
+  button { width: 48px; height: 48px; }
   button svg { width: 20px; height: 20px; }
 }
+
 
 
   </style>
