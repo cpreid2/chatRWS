@@ -216,7 +216,7 @@
 
 /* --- Mobile layout & type scaling --- */
 @media (max-width: 768px) {
-  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; background: inherit !important; } /* readable + avoid input zoom */
+  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; } /* readable + avoid input zoom */
   .wrap { padding: 8px; }
   .bar { padding: 12px 12px; }
   .title { font-size: 16px; }
@@ -225,9 +225,6 @@
   .chat {
     padding: 12px;
     border-radius: 16px;
-    background: inherit !important;   /* same as body/page */
-    border: 0 !important;
-    box-shadow: none !important;
   }
 
   /* Force the composer to the bottom on mobile (even before first send) */
@@ -264,6 +261,39 @@
   button { width: 48px; height: 48px; } /* comfortable tap target */
   button svg { width: 20px; height: 20px; }
 }
+
+/* ---- Theme tokens (light & dark) ---- */
+:root {
+  color-scheme: light dark;           /* lets the browser style form controls per mode */
+  --bg: #ffffff;                      /* page background (light)  */
+  --fg: #0b0b0c;                      /* text (light)            */
+  --border: #e6e6eb;                  /* subtle borders (light)  */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0c;                    /* page background (dark)  */
+    --fg: #eaeaea;                    /* text (dark)             */
+    --border: #222;                   /* subtle borders (dark)   */
+  }
+}
+
+/* Apply everywhere */
+html, body { background: var(--bg); color: var(--fg); }
+
+/* Make the chat area blend with the page in BOTH modes */
+.chat {
+  background: var(--bg) !important;   /* same as body */
+  border: 1px solid var(--border) !important;  /* keep your rounded card edge, optional */
+  box-shadow: none !important;        /* remove any grey/raised look */
+  background-clip: padding-box;       /* avoid odd blending halos */
+}
+
+/* If your layout has a wrapper or card behind .chat, match it too */
+.wrap, .chat-container { background: var(--bg) !important; }
+
+/* Safety: kill any decorative overlays that might be tinting it grey */
+.chat::before,
+.chat::after { background: transparent !important; box-shadow: none !important; }
 
 
   </style>
