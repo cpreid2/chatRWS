@@ -2,7 +2,7 @@
 Reflect Without Surveillance
 https://cpreid2.github.io/chatRWS/
 
-ChatRWS is a minimalist self-reflection tool that mimics certain chat interfaces without any backend or data storage. It restores the sanctity of private reflection in an time where the self has been productized.
+ChatRWS is a minimalist self-reflection tool that mimics certain chat interfaces without any backend or data storage. It restores the sanctity of private reflection in a time where the self has been productized.
 It invites users to write and release their thoughts: no feedback, no history, no tracking.
 
 
