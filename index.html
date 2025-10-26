@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ChatRWS — Reflect Without Surveillance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ChatRWS — Reflection Without Surveillance</title>
   <style>
     :root {
       --bg:#f6f7f9;
@@ -214,6 +214,55 @@
 }
 .docked .chat { padding-bottom: 90px; }
 
+/* --- Mobile layout & type scaling --- */
+@media (max-width: 768px) {
+  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; } /* readable + avoid input zoom */
+  .wrap { padding: 8px; }
+  .bar { padding: 12px 12px; }
+  .title { font-size: 16px; }
+  .ephemeral { font-size: 12px; }
+
+  .chat {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  /* Force the composer to the bottom on mobile (even before first send) */
+  .composerWrap {
+    position: sticky;
+    left: auto; top: auto; bottom: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+  }
+
+  /* Show chat on first load on mobile */
+  .prechat .chat {
+    opacity: 1; height: auto; overflow: auto;
+    padding: 12px;
+    margin: 0;
+    border-width: 1px;
+  }
+  .prechat .foot { display: block; }
+
+  /* Extra bottom space so the docked bar doesn’t cover last messages */
+  .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+  .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+
+  .composer { gap: 10px; }
+
+  textarea {
+    min-height: 56px;          /* large enough to avoid iOS zoom on focus */
+    font-size: 18px;            /* >=16px prevents zoom */
+    line-height: 1.5;
+  }
+
+  button { width: 48px; height: 48px; } /* comfortable tap target */
+  button svg { width: 20px; height: 20px; }
+}
+
+
   </style>
 </head>
 <body class="prechat">
@@ -340,6 +389,20 @@
     input.addEventListener('keydown',e=>{
       if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleSend(); }
     });
+
+    // On load, force docked layout on small screens
+(function () {
+  const mq = window.matchMedia('(max-width: 768px)');
+  function applyMobileDock() {
+    if (mq.matches) {
+      document.body.classList.add('docked');
+      document.body.classList.remove('prechat'); // reveal chat on mobile immediately
+    }
+  }
+  applyMobileDock();
+  mq.addEventListener?.('change', applyMobileDock);
+})();
+
   </script>
 </body>
 </html>
