@@ -1,413 +1,504 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>ChatRWS — Reflection Without Surveillance</title>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>ChatRWS — Reflection Without Surveillance</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --panel:#ffffffcc; --line:#e9ebef; --text:#101216; --muted:#6b7280;
+    --bubble:#ffffff; --shadow:0 10px 30px rgba(0,0,0,.06); --accent:#10a37f; --accent-hover:#0e8c6e;
+  }
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg:#f6f7f9;
-      --panel:#ffffffcc;
-      --line:#e9ebef;
-      --text:#101216;
-      --muted:#6b7280;
-      --bubble:#ffffff;
-      --shadow:0 10px 30px rgba(0,0,0,.06);
-      --accent:#10a37f;
-      --accent-hover:#0e8c6e;
+      --bg:#0f1115; --panel:#0f1115cc; --line:#1b2027; --text:#e7e9ee; --muted:#9aa4b2;
+      --bubble:#151923; --shadow:0 10px 30px rgba(0,0,0,.35); --accent:#19c287; --accent-hover:#0fb97f;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:#0f1115;
-        --panel:#0f1115cc;
-        --line:#1b2027;
-        --text:#e7e9ee;
-        --muted:#9aa4b2;
-        --bubble:#151923;
-        --shadow:0 10px 30px rgba(0,0,0,.35);
-        --accent:#19c287;
-        --accent-hover:#0fb97f;
-      }
-    }
+  }
 
-    * { box-sizing:border-box; }
-    html,body { height:100%; }
-    body {
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      display:flex; flex-direction:column;
-    }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column;
+  }
 
-    header {
-      position:sticky; top:0; z-index:2;
-      background:var(--panel);
-      backdrop-filter:blur(10px) saturate(140%);
-      -webkit-backdrop-filter:blur(10px) saturate(140%);
-      border-bottom:1px solid var(--line);
-    }
-    .bar {
-      max-width:920px; margin:0 auto; padding:14px 16px;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .title {
-      font-size:18px;
-      font-weight:700;
-      letter-spacing:0.01em;
-      color:var(--text);
-    }
-    .ephemeral { font-size:12px; color:var(--muted); }
+  header {
+    position:sticky; top:0; z-index:2; background:var(--panel);
+    backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+    border-bottom:1px solid var(--line);
+  }
+  .bar { max-width:920px; margin:0 auto; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; }
+  .title { font-size:18px; font-weight:700; letter-spacing:.01em; color:var(--text); }
+  .ephemeral { font-size:12px; color:var(--muted); }
 
-    .wrap { flex:1; display:flex; flex-direction:column; max-width:920px; margin:0 auto; width:100%; padding:16px; }
-    .chat {
-      flex:1; overflow:auto; padding:16px;
-      border:1px solid var(--line); border-radius:24px;
-      background:linear-gradient(180deg, rgba(255,255,255,.45), rgba(255,255,255,.35));
-      box-shadow:var(--shadow);
-    }
+  .wrap { flex:1; display:flex; flex-direction:column; max-width:920px; margin:0 auto; width:100%; padding:16px; }
 
-    .row { display:flex; margin:10px 0; }
-    .row.you { justify-content:flex-end; }
-    .bubble {
-      max-width:72ch; padding:12px 14px; border-radius:14px 14px 4px 14px;
-      background:var(--bubble); border:1px solid var(--line); position:relative;
-    }
-    .row.you .bubble { border-radius:14px 14px 14px 4px; }
-    .meta { font-size:12px; color:var(--muted); margin-top:6px; user-select:none; }
+  /* Chat area with a fixed overlay physics stage */
+  .chat {
+    position: relative;
+    flex:1; overflow:auto; padding:16px;
+    border:1px solid var(--line); border-radius:24px;
+    background:var(--bg);
+    box-shadow:none; background-clip:padding-box;
+  }
+  .stage {
+    position:absolute; inset:0; overflow:hidden; pointer-events:none;
+  }
 
-    /* Evaporation */
-    .evaporating { animation: bubbleFade .9s ease forwards; }
-    @keyframes bubbleFade { to { opacity:.2; transform:translateY(-6px); } }
-    /* Characters still animate */
-    .ch { display:inline-block; }
+  .row { display:flex; margin:10px 0; }
+  .row.you { justify-content:flex-end; }
+  .bubble {
+    max-width:72ch; padding:12px 14px; border-radius:14px 14px 4px 14px;
+    background:var(--bubble); border:1px solid var(--line); position:relative;
+    word-break: keep-all; overflow-wrap: break-word; hyphens:auto; line-height:1.5;
+  }
+  .row.you .bubble { border-radius:14px 14px 14px 4px; }
+  .meta { font-size:12px; color:var(--muted); margin-top:6px; user-select:none; }
 
-    /* NEW: word-safe wrapping model */
-    .bubble{
-      word-break: keep-all;        /* don't break inside words */
-      overflow-wrap: break-word;   /* but do break very long unbroken strings */
-      hyphens: auto;
-      line-height: 1.5;
-    }
-    .chars{ display:inline; white-space:normal; }      /* inline container for runs */
-    .word{ display:inline-block; white-space:nowrap; } /* keep each word intact */
+  .composer {
+    display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 0; position:relative;
+  }
+  textarea {
+    flex:1; resize:none; min-height:60px; max-height:220px; padding:12px 14px;
+    border:1px solid var(--line); border-radius:16px; background:var(--bubble); color:var(--text);
+    outline:none; transition:border-color .2s ease; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  textarea:focus { border-color:var(--accent); }
+  button {
+    background:var(--accent); color:#fff; border:none; border-radius:50%;
+    width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+    transition:background .2s ease, transform .1s ease, box-shadow .2s ease; box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  button:hover { background:var(--accent-hover); box-shadow:0 0 0 3px rgba(16,163,127,0.25); }
+  button:active { transform:translateY(1px) scale(0.97); }
+  button svg, button svg * { transform:none !important; }
+  button svg { width:18px; height:18px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
-    .composer {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 0;
-      position: relative;
-    }
-    textarea {
-      flex:1; resize:none; min-height:60px; max-height:220px; padding:12px 14px;
-      border:1px solid var(--line); border-radius:16px; background:var(--bubble); color:var(--text);
-      outline:none; transition:border-color .2s ease;
-      font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    }
-    textarea:focus { border-color:var(--accent); }
+  .foot { font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0 0; border-top:1px dashed var(--line); padding-top:10px; user-select:none; }
 
-    /* ChatGPT-style upward Release button */
-    button {
-      background:var(--accent); color:#fff; border:none; border-radius:50%;
-      width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
-      transition:background .2s ease, transform .1s ease, box-shadow .2s ease;
-      box-shadow:0 2px 6px rgba(0,0,0,0.15);
-    }
-    button:hover { background:var(--accent-hover); box-shadow:0 0 0 3px rgba(16,163,127,0.25); }
-    button:active { transform:translateY(1px) scale(0.97); }
-    button svg, button svg * { transform:none !important; }
-    button svg {
-      width:18px; height:18px;
-      stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
-    }
+  /* Floating center composer (desktop pre-chat) */
+  .composerWrap {
+    position: fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(920px, calc(100% - 32px)); z-index:3;
+    transition: transform .3s ease, top .3s ease, bottom .3s ease, opacity .25s ease;
+    background: var(--panel); backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:12px;
+  }
+  .composer { padding:0; }
 
-    .foot {
-      font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0 0;
-      border-top:1px dashed var(--line); padding-top:10px; user-select:none;
-    }
+  /* Docked bottom */
+  .docked .composerWrap {
+    position: sticky; left:auto; top:auto; bottom:0; transform:none; width:100%;
+    background:var(--panel); border-radius:16px; padding:12px 16px; border-top:1px solid var(--line);
+  }
+  .docked .chat { padding-bottom: 90px; }
 
-    /* Centered state (default) — fixed, glassy, and elevated */
+  /* Hide chat initially (desktop) */
+  .prechat .chat { opacity:0; height:0; overflow:hidden; padding:0; margin:0; border-width:0; }
+  .prechat .foot { display:none; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    html, body { font-size:18px; -webkit-text-size-adjust:100%; }
+    .wrap { padding:8px; }
+    .bar { padding:12px 12px; }
+    .title { font-size:16px; }
+    .ephemeral { font-size:12px; }
+    .chat { padding:12px; border-radius:16px; }
     .composerWrap {
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: min(920px, calc(100% - 32px));
-      z-index: 3;
-      transition: transform .3s ease, top .3s ease, bottom .3s ease, opacity .25s ease;
-      background: var(--panel);
-      backdrop-filter: blur(10px) saturate(140%);
-      -webkit-backdrop-filter: blur(10px) saturate(140%);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 12px;
+      position: sticky; left:auto; top:auto; bottom:0; transform:none; width:100%;
+      border-radius:16px 16px 0 0;
+      padding:12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
     }
-    .composer { padding: 0; }
+    .prechat .chat { opacity:1; height:auto; overflow:auto; padding:12px; margin:0; border-width:1px; }
+    .prechat .foot { display:block; }
+    .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    .composer { gap:10px; }
+    textarea { min-height:56px; font-size:18px; line-height:1.5; }
+    button { width:48px; height:48px; }
+    button svg { width:20px; height:20px; }
+  }
 
-    /* Docked state — behaves like ChatGPT’s bottom bar */
-    .docked .composerWrap {
-      position: sticky;
-      left: auto;
-      top: auto;
-      bottom: 0;
-      transform: none;
-      width: 100%;
-      background: var(--panel);
-      border-radius: 16px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--line);
-    }
-    .docked .chat { padding-bottom: 90px; }
+  /* Light/dark tokens */
+  :root { color-scheme: light dark; --bg:#ffffff; --fg:#0b0b0c; --border:#e6e6eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b0b0c; --fg:#eaeaea; --border:#222; } }
+  html, body { background: var(--bg); color: var(--fg); }
+  .wrap, .chat-container { background: var(--bg) !important; }
+  .chat { background: var(--bg) !important; border:1px solid var(--border) !important; box-shadow:none !important; background-clip:padding-box; }
+  .chat::before, .chat::after { background:transparent !important; box-shadow:none !important; }
 
-    /* Hide chat and footer until first message */
-    .prechat .chat {
-      opacity: 0;
-      height: 0;
-      overflow: hidden;
-      padding: 0;
-      margin: 0;
-      border-width: 0;
-    }
-    .prechat .foot { display: none; }
-
-    /* --- Mobile layout & type scaling --- */
-    @media (max-width: 768px) {
-      html, body { font-size: 18px; -webkit-text-size-adjust: 100%; }
-      .wrap { padding: 8px; }
-      .bar { padding: 12px 12px; }
-      .title { font-size: 16px; }
-      .ephemeral { font-size: 12px; }
-
-      .chat {
-        padding: 12px;
-        border-radius: 16px;
-      }
-
-      /* Force the composer to the bottom on mobile (even before first send) */
-      .composerWrap {
-        position: sticky;
-        left: auto; top: auto; bottom: 0;
-        transform: none;
-        width: 100%;
-        border-radius: 16px 16px 0 0;
-        padding: 12px env(safe-area-inset-right) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-      }
-
-      /* Show chat on first load on mobile */
-      .prechat .chat {
-        opacity: 1; height: auto; overflow: auto;
-        padding: 12px;
-        margin: 0;
-        border-width: 1px;
-      }
-      .prechat .foot { display: block; }
-
-      /* Extra bottom space so the docked bar doesn’t cover last messages */
-      .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-      .docked .chat { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
-
-      .composer { gap: 10px; }
-      textarea {
-        min-height: 56px;
-        font-size: 18px; /* >=16px prevents iOS zoom */
-        line-height: 1.5;
-      }
-      button { width: 48px; height: 48px; }
-      button svg { width: 20px; height: 20px; }
-    }
-
-    /* ---- Theme tokens (light & dark) ---- */
-    :root { color-scheme: light dark; --bg: #ffffff; --fg: #0b0b0c; --border: #e6e6eb; }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #0b0b0c; --fg: #eaeaea; --border: #222; }
-    }
-    html, body { background: var(--bg); color: var(--fg); }
-
-    /* Blend chat area with page in both modes */
-    .chat {
-      background: var(--bg) !important;
-      border: 1px solid var(--border) !important;
-      box-shadow: none !important;
-      background-clip: padding-box;
-    }
-    .wrap, .chat-container { background: var(--bg) !important; }
-    .chat::before, .chat::after { background: transparent !important; box-shadow: none !important; }
-  </style>
+  /* Physics letters live in .stage */
+  .letter {
+    position:absolute; will-change: transform, opacity;
+    user-select:none; pointer-events:none;
+    font-weight:600; line-height:1;
+      font-size:24px;
+    transform: translate3d(0,0,0) rotate(0deg);
+  }
+  .letter.fade { transition: opacity .8s ease; opacity:0; }
+</style>
 </head>
 <body class="prechat">
+<header>
+  <div class="bar">
+    <div class="title"><strong>ChatRWS</strong> - Reflect Without Surveillance</div>
+    <div class="ephemeral">Local only · Nothing stored or analyzed</div>
+  </div>
+</header>
 
-  <header>
-    <div class="bar">
-      <div class="title"><strong>ChatRWS</strong> - Reflect Without Surveillance</div>
-      <div class="ephemeral">Local only · Nothing stored or analyzed</div>
+<main class="wrap">
+  <div id="chat" class="chat" aria-live="polite">
+    <!-- Fixed physics container -->
+    <div id="stage" class="stage"></div>
+  </div>
+
+  <div class="composerWrap">
+    <div class="composer">
+      <textarea id="input" placeholder="How are you feeling? Press Enter to release the thought."></textarea>
+      <button id="send" title="Release" aria-label="Release">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="6 10 12 4 18 10"></polyline>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+        </svg>
+      </button>
     </div>
-  </header>
+  </div>
 
-  <main class="wrap">
-    <div id="chat" class="chat"></div>
+  <div class="foot">
+    This chat mirrors feelings without replying.<br>
+    Unlike LLMs, it offers no affirmation loop. Language lives only long enough to let go.
+  </div>
+</main>
 
-    <div class="composerWrap">
-      <div class="composer">
-        <textarea id="input" placeholder="How are you feeling? Press Enter to release the thought."></textarea>
-        <button id="send" title="Release" aria-label="Release">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <polyline points="6 10 12 4 18 10"></polyline>
-            <line x1="12" y1="4" x2="12" y2="20"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
+<script>
+  /* ---------------- Layout & UX ---------------- */
+  let isDocked = false;
+  function dockComposer() {
+    if (isDocked) return;
+    document.body.classList.remove('prechat');
+    document.body.classList.add('docked');
+    isDocked = true;
+  }
 
-    <div class="foot">
-      This chat mirrors feelings without replying.<br>
-      Unlike LLMs, it offers no affirmation loop. Language lives only long enough to let go.
-    </div>
-  </main>
+  const chat  = document.getElementById('chat');
+  const stage = document.getElementById('stage');
+  const input = document.getElementById('input');
+  const send  = document.getElementById('send');
 
-  <script>
-    let isDocked = false;
+  function autosize(el){
+    el.style.height='auto';
+    el.style.height=Math.min(220, el.scrollHeight)+'px';
+  }
+  input.addEventListener('input',()=>autosize(input));
 
-    function dockComposer() {
-      if (isDocked) return;
-      document.body.classList.remove('prechat'); // show chat window
-      document.body.classList.add('docked');     // dock composer
-      isDocked = true;
-    }
+  const WAIT_MS = 5000;       // bubble waits as before
+  const BUBBLE_FADE_MS = 250; // fade after dropping
 
-    const chat = document.getElementById('chat');
-    const input = document.getElementById('input');
-    const send = document.getElementById('send');
+  /* ---------------- Physics (with self-repulsion) ---------------- */
+  const letters = [];
+  const MAX_LETTERS = 600;
 
-    function autosize(el){
-      el.style.height='auto';
-      el.style.height=Math.min(220, el.scrollHeight)+'px';
-    }
-    input.addEventListener('input',()=>autosize(input));
+  const phys = {
+    g: 1600,            // base gravity (px/s^2)
+    bounce: 0.34,       // wall/floor restitution
+    floorFric: 0.82,    // velocity damp on floor hit
+    airFric: 0.995,     // per-step air drag
+    spinFric: 0.995,    // per-step spin drag
+    dtMax: 1/30
+  };
 
-    /* NEW: build spans per word (keeps words intact), preserve newlines */
-    function splitToCharSpans(text){
-      const wrap = document.createElement('span');
-      wrap.className = 'chars';
+  // Repulsion tunables
+  const CELL_SIZE = 36;          // spatial hash cell size
+  const REPULSE_ITER = 2;        // how many solver passes per frame
+  const REPULSE_STRENGTH = 0.6;  // how strongly to separate overlapped letters (0..1)
+  const RESTITUTION = 0.20;      // collision impulse damping (0..1)
 
-      const lines = text.split('\n');
-      lines.forEach((line, i) => {
-        // Split into words + spaces, preserving spaces as their own tokens
-        const tokens = line.split(/(\s+)/);
-        for (const tok of tokens) {
-          if (!tok) continue;
+  let animId = null, lastT = performance.now();
+  function nowSec(){ return performance.now()/1000; }
 
-          // Whitespace: append as a normal collapsing text node (no &nbsp;)
-          if (/^\s+$/.test(tok)) {
-            wrap.appendChild(document.createTextNode(tok));
-            continue;
-          }
+  function spawnLettersFromPoint(text, clientX, clientY){
+    if (!text) return;
 
-          // Word token: keep whole via .word, but still allow per-char animation
-          const w = document.createElement('span');
-          w.className = 'word';
-          for (const ch of tok) {
-            const s = document.createElement('span');
-            s.className = 'ch';
-            s.textContent = ch;
-            w.appendChild(s);
-          }
-          wrap.appendChild(w);
-        }
+    const rect = stage.getBoundingClientRect();
+    const originX = clientX - rect.left;
+    const originY = clientY - rect.top;
 
-        if (i < lines.length - 1) {
-          wrap.appendChild(document.createElement('br'));
-        }
+    const baseVY = -300 - Math.random()*150;
+    const baseVX = (Math.random()*2-1) * 120;
+
+    for (const ch of text) {
+      if (ch === '\n') continue;
+
+      const el = document.createElement('span');
+      el.className = 'letter';
+      el.textContent = ch;
+      el.style.color = 'var(--fg)';
+      stage.appendChild(el);
+
+      // initial placement + measure
+      el.style.transform = `translate(${originX}px, ${originY}px) rotate(0deg)`;
+      const m = el.getBoundingClientRect();
+      const w = Math.max(10, m.width || 10);
+      const h = Math.max(14, m.height || 14);
+      const r = Math.max(w, h) * 0.55; // collision radius approx
+
+      const vx = baseVX + (Math.random()*2-1) * 180;
+      const vy = baseVY + (Math.random()*2-1) * 120;
+      const spin = (Math.random()*2-1) * 6;
+
+      letters.push({
+        el,
+        x: originX + (Math.random()*2-1)*6,
+        y: originY + (Math.random()*2-1)*6,
+        vx, vy,
+        a: 0,
+        av: spin,
+        w, h, r,
+        mass: 1, // same mass for all (simple)
+        born: nowSec(),
+        life: 14 + Math.random()*10
       });
 
-      return wrap;
+      if (letters.length > MAX_LETTERS) {
+        const old = letters.shift();
+        old?.el?.remove();
+      }
     }
 
-    function randomizeEvaporation(bubble){
-      const chars=bubble.querySelectorAll('.ch');
-      const baseLift=36;
-      chars.forEach(el=>{
-        const dx=(Math.random()-0.5)*24;
-        const delay=80+Math.random()*420;
-        const dur=500+Math.random()*900;
-        const rot=(Math.random()-0.5)*8;
-        el.style.setProperty('--dx',dx.toFixed(2)+'px');
-        el.style.setProperty('--lift',(baseLift+Math.random()*22).toFixed(2)+'px');
-        el.style.setProperty('--delay',delay.toFixed(0)+'ms');
-        el.style.setProperty('--dur',dur.toFixed(0)+'ms');
-        el.style.setProperty('--rot',rot.toFixed(2)+'deg');
-      });
-    }
+    if (!animId) lastT = performance.now(), animId = requestAnimationFrame(tick);
+  }
 
-    function addMessage(text){
-      if(!text.trim()) return;
-      const row=document.createElement('div');
-      row.className='row you';
-      const bubble=document.createElement('div');
-      bubble.className='bubble';
-      bubble.appendChild(splitToCharSpans(text));
-      const meta=document.createElement('div');
-      meta.className='meta';
-      meta.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      bubble.appendChild(meta);
-      row.appendChild(bubble);
-      chat.appendChild(row);
-      chat.scrollTo({top:chat.scrollHeight, behavior:'smooth'});
-      setTimeout(()=>{
-        randomizeEvaporation(bubble);
-        bubble.classList.add('evaporating');
-        setTimeout(()=>row.remove(),3000);
-      },5000);
-    }
-
-    function handleSend(){
-      const text = input.value;
-      addMessage(text);
-      input.value='';
-      autosize(input);
-      input.focus();
-      dockComposer(); // move composer & reveal chat
-    }
-
-    send.addEventListener('click',handleSend);
-    input.addEventListener('keydown',e=>{
-      if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); handleSend(); }
-    });
-
-    // On load, force docked layout on small screens
-    (function () {
-      const mq = window.matchMedia('(max-width: 768px)');
-      function applyMobileDock() {
-        if (mq.matches) {
-          document.body.classList.add('docked');
-          document.body.classList.remove('prechat'); // reveal chat on mobile immediately
+  // Build spatial hash
+  function buildGrid(arr, W, H) {
+    const grid = new Map();
+    for (let i = 0; i < arr.length; i++) {
+      const L = arr[i];
+      const cx0 = Math.floor(L.x / CELL_SIZE);
+      const cy0 = Math.floor(L.y / CELL_SIZE);
+      const cx1 = Math.floor((L.x + L.w) / CELL_SIZE);
+      const cy1 = Math.floor((L.y + L.h) / CELL_SIZE);
+      for (let cx = cx0; cx <= cx1; cx++) {
+        for (let cy = cy0; cy <= cy1; cy++) {
+          const key = cx + ',' + cy;
+          if (!grid.has(key)) grid.set(key, []);
+          grid.get(key).push(i);
         }
       }
-      applyMobileDock();
-      mq.addEventListener?.('change', applyMobileDock);
-    })();
+    }
+    return grid;
+  }
 
-    // Hide keyboard after release (mobile)
-    (function () {
-      const textarea = document.querySelector('.composer textarea');
-      const releaseBtn = document.querySelector('.composer button');
-      if (!textarea) return;
+  // Pairwise resolution with neighbors in adjacent cells
+  function resolveCollisions(arr, grid) {
+    const neigh = [
+      [-1,-1],[0,-1],[1,-1],
+      [-1, 0],[0, 0],[1, 0],
+      [-1, 1],[0, 1],[1, 1],
+    ];
 
-      function hideKeyboard() {
-        textarea.blur();
-        textarea.setAttribute('readonly','readonly');
-        setTimeout(()=> textarea.removeAttribute('readonly'), 50);
-        setTimeout(()=> window.scrollTo(0,0), 0);
+    for (let k = 0; k < arr.length; k++) {
+      const A = arr[k];
+      const acx0 = Math.floor(A.x / CELL_SIZE);
+      const acy0 = Math.floor(A.y / CELL_SIZE);
+
+      for (const [dx,dy] of neigh) {
+        const key = (acx0+dx) + ',' + (acy0+dy);
+        const list = grid.get(key);
+        if (!list) continue;
+
+        for (const j of list) {
+          if (j <= k) continue; // avoid double
+
+          const B = arr[j];
+
+          // Circle approximation collision
+          const ax = A.x + A.w*0.5, ay = A.y + A.h*0.5;
+          const bx = B.x + B.w*0.5, by = B.y + B.h*0.5;
+          let nx = bx - ax;
+          let ny = by - ay;
+          const dist2 = nx*nx + ny*ny;
+          const minDist = A.r + B.r;
+
+          if (dist2 > 0 && dist2 < minDist*minDist) {
+            const dist = Math.sqrt(dist2);
+            // Normalized collision normal
+            nx /= dist; ny /= dist;
+
+            // Penetration depth
+            const depth = (minDist - dist);
+
+            // Position correction (split between A and B)
+            const corr = depth * REPULSE_STRENGTH * 0.5;
+            A.x -= nx * corr; A.y -= ny * corr;
+            B.x += nx * corr; B.y += ny * corr;
+
+            // Relative velocity along normal
+            const rvx = B.vx - A.vx;
+            const rvy = B.vy - A.vy;
+            const relVel = rvx * nx + rvy * ny;
+
+            // Bounce impulse (only if moving toward each other)
+            if (relVel < 0) {
+              const jImpulse = -(1 + RESTITUTION) * relVel / (A.mass + B.mass);
+              const impX = jImpulse * nx;
+              const impY = jImpulse * ny;
+              A.vx -= impX * A.mass; A.vy -= impY * A.mass;
+              B.vx += impX * B.mass; B.vy += impY * B.mass;
+            }
+          }
+        }
       }
+    }
+  }
 
-      if (releaseBtn) releaseBtn.addEventListener('click', hideKeyboard, true);
-      document.addEventListener('touchstart', (e) => {
-        const composer = document.querySelector('.composerWrap');
-        if (composer && !composer.contains(e.target)) hideKeyboard();
-      }, { passive: true });
-    })();
-  </script>
+  function tick(t){
+    let dt = (t - lastT)/1000; lastT = t; if (dt > phys.dtMax) dt = phys.dtMax;
+
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+
+    const gx = phys.gx || 0;
+    const gy = phys.gy || phys.g;
+
+    // Integrate motion
+    for (let i=0;i<letters.length;i++){
+      const L = letters[i];
+
+      L.vx += gx * dt; L.vy += gy * dt;
+      L.vx *= phys.airFric; L.vy *= phys.airFric; L.av *= phys.spinFric;
+
+      L.x += L.vx * dt; L.y += L.vy * dt; L.a += L.av * dt;
+
+      // Walls
+      if (L.x < 0) { L.x = 0; L.vx = -L.vx * phys.bounce; }
+      if (L.x + L.w > W) { L.x = W - L.w; L.vx = -L.vx * phys.bounce; }
+
+      // Ceiling/Floor
+      if (L.y < 0) { L.y = 0; L.vy = -L.vy * phys.bounce; }
+      if (L.y + L.h > H) {
+        L.y = H - L.h;
+        L.vy = -L.vy * phys.bounce;
+        L.vx *= phys.floorFric;
+        if (Math.abs(L.vy) < 20) L.vy = 0;
+        if (Math.abs(L.vx) < 6)  L.vx = 0;
+        if (Math.abs(L.av) < 10) L.av = 0;
+      }
+    }
+
+    // Self-repulsion solver (a few passes per frame)
+    for (let pass=0; pass<REPULSE_ITER; pass++) {
+      const grid = buildGrid(letters, W, H);
+      resolveCollisions(letters, grid);
+    }
+
+    // Draw
+    for (let i=0;i<letters.length;i++){
+      const L = letters[i];
+      L.el.style.transform = `translate(${L.x}px, ${L.y}px) rotate(${L.a}deg)`;
+    }
+
+    // Lifetimes
+    const now = nowSec();
+    for (let i=letters.length-1;i>=0;i--){
+      const L = letters[i];
+      if (now - L.born > L.life) {
+        L.el.classList.add('fade');
+        setTimeout(()=> L.el.remove(), 800);
+        letters.splice(i,1);
+      }
+    }
+
+    if (letters.length) animId = requestAnimationFrame(tick);
+    else animId = null;
+  }
+
+  /* ---------------- Message flow (bubble → wait → drop) ---------------- */
+  function addMessage(text){
+    if (!text.trim()) return;
+
+    dockComposer();
+
+    const row   = document.createElement('div');
+    row.className = 'row you';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const meta  = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+    bubble.appendChild(meta);
+    row.appendChild(bubble);
+    chat.appendChild(row);
+
+    // scroll to bubble
+    chat.scrollTop = chat.scrollHeight;
+
+    // After WAIT_MS, letters fall from the bubble, then bubble fades
+    setTimeout(()=>{
+      const b = bubble.getBoundingClientRect();
+      const cx = b.left + b.width * 0.5;
+      const cy = b.top  + b.height * 0.2;
+
+      spawnLettersFromPoint(text, cx, cy);
+
+      bubble.style.transition = `opacity ${BUBBLE_FADE_MS}ms ease, transform ${BUBBLE_FADE_MS}ms ease`;
+      bubble.style.opacity = '0';
+      bubble.style.transform = 'translateY(-2px)';
+      setTimeout(()=> row.remove(), BUBBLE_FADE_MS + 50);
+    }, WAIT_MS);
+  }
+
+  function handleSend(){
+    const text = input.value;
+    addMessage(text);
+    input.value=''; autosize(input); input.focus(); hideKeyboard();
+  }
+
+  send.addEventListener('click',handleSend);
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); handleSend(); }
+  });
+
+  // Dock on mobile
+  (function () {
+    const mq = window.matchMedia('(max-width: 768px)');
+    function applyMobileDock() {
+      if (mq.matches) {
+        document.body.classList.add('docked');
+        document.body.classList.remove('prechat');
+      }
+    }
+    applyMobileDock();
+    mq.addEventListener?.('change', applyMobileDock);
+  })();
+
+  // Hide keyboard on mobile
+  function hideKeyboard() {
+    input.blur();
+    input.setAttribute('readonly','readonly');
+    setTimeout(()=> input.removeAttribute('readonly'), 50);
+    setTimeout(()=> window.scrollTo(0,0), 0);
+  }
+  document.addEventListener('touchstart', (e) => {
+    const composer = document.querySelector('.composerWrap');
+    if (composer && !composer.contains(e.target)) hideKeyboard();
+  }, { passive: true });
+
+  // Optional tilt gravity (kept subtle)
+  window.addEventListener('deviceorientation', (e)=>{
+    const gx = (e.gamma || 0) / 90;   // -1..1
+    const gy = (e.beta  || 0) / 180;  // -1..1
+    const g  = 1600;
+    const ang = Math.atan2(gy, gx);
+    phys.gx = Math.cos(ang) * g * 0.20;
+    phys.gy = Math.sin(ang) * g * 0.20 + g * 0.9;
+  });
+</script>
 </body>
 </html>
