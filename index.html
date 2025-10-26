@@ -436,6 +436,51 @@ html, body { background: var(--bg); color: var(--fg); }
   mq.addEventListener?.('change', applyMobileDock);
 })();
 
+    (function () {
+  const form = document.querySelector('.composer form') || document.querySelector('#composerForm');
+  const textarea = document.querySelector('.composer textarea') || document.querySelector('#msg');
+  const releaseBtn = document.querySelector('.composer button');
+
+  if (!textarea) return;
+
+  function hideKeyboard() {
+    // Works on most browsers
+    textarea.blur();
+
+    // iOS Safari can be stubborn—this forces the keyboard to close
+    textarea.setAttribute('readonly', 'readonly');
+    setTimeout(() => {
+      textarea.removeAttribute('readonly');
+    }, 50);
+
+    // Nudge viewport so toolbar collapses
+    setTimeout(() => window.scrollTo(0, 0), 0);
+  }
+
+  // If you have a submit flow:
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      // keep your existing submit logic…
+      // e.g., e.preventDefault(); releaseMessage(textarea.value);
+
+      hideKeyboard();
+    }, true);
+  }
+
+  // Also blur when the Release button is tapped (in case it’s a click handler, not a submit)
+  if (releaseBtn) {
+    releaseBtn.addEventListener('click', () => {
+      hideKeyboard();
+    }, true);
+  }
+
+  // Optional: tapping anywhere outside the composer hides the keyboard
+  document.addEventListener('touchstart', (e) => {
+    const composer = document.querySelector('.composerWrap') || document.querySelector('#composer');
+    if (composer && !composer.contains(e.target)) hideKeyboard();
+  }, { passive: true });
+})();
+
   </script>
 </body>
 </html>
