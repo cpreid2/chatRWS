@@ -216,12 +216,11 @@
 
 /* --- Mobile layout & type scaling --- */
 @media (max-width: 768px) {
-  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; } /* readable + avoid input zoom */
+  html, body { font-size: 18px; -webkit-text-size-adjust: 100%; background: inherit !important; } /* readable + avoid input zoom */
   .wrap { padding: 8px; }
   .bar { padding: 12px 12px; }
   .title { font-size: 16px; }
   .ephemeral { font-size: 12px; }
-      background: inherit !important;
 
   .chat {
     padding: 12px;
