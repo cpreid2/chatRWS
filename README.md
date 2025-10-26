@@ -6,9 +6,9 @@ It invites users to write and release their thoughts: no feedback, no history, n
 
 # Features
 
-100% local: nothing leaves your device
-No analytics, APIs, or databases
-Messages fade away after a few seconds
+## 100% local: nothing leaves your device
+## No analytics, APIs, or databases
+## Messages fade away after a few seconds
 
-Concept
+# Concept
 In the current paradigm of data collection and dopamine loops, ChatRWS offers a quiet space for introspection. A place to express without being observed or optimized.
